@@ -12,13 +12,13 @@ app = Flask(__name__)
 api = Api(app)
 
 class Home(Resource):
-    @urgent2k_token_required
+
     def get(self):
         return {'message': "Welcome to the homepage of this webservice."}
 api.add_resource(Home,'/')
 
 class GetServices(Resource):
-    @urgent2k_token_required
+    
     def get(self):
         data = service_col.find()
         service_list = list()
@@ -28,7 +28,7 @@ class GetServices(Resource):
 api.add_resource(GetServices,'/get/services')
 
 class GetDiagnosis(Resource):
-    @urgent2k_token_required
+    
     def get(self):
         data = diagnosis_col.find()
         diagnosis_list = list()
@@ -38,7 +38,7 @@ class GetDiagnosis(Resource):
 api.add_resource(GetDiagnosis,'/get/diagnosis')
 
 class GetDrugs(Resource):
-    @urgent2k_token_required
+    
     def get(self):
         data = medicine_col.find({},{ "_id": 0,"price": 0 })
         medicine_list = list()
