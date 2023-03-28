@@ -36,3 +36,14 @@ class GetDiagnosis(Resource):
             diagnosis_list.append(i.get("diagnosis"))
         return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }, 200
 api.add_resource(GetDiagnosis,'/get/diagnosis')
+
+class GetDrugs(Resource):
+    @urgent2k_token_required
+    def get(self):
+        data = medicine_col.find({},{ "_id": 0,"price": 0 })
+        medicine_list = list()
+        for i in data:
+            medicine_list.append(i)
+        return {"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list }, 200
+api.add_resource(GetDrugs,'/get/drugs')
+

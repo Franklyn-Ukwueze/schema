@@ -41,29 +41,29 @@ os.chdir("C:/Users/DELL/Downloads") #this changes our CWD, if the excel sheet is
 # data = pd.ExcelFile(file)
 # print(data.sheet_names) #this returns the all the sheets in the excel file
 # ['Sheet1']
-ps = openpyxl.load_workbook('ICD_10_Classification of Diseases_Diagnosis.xlsx')
-sheet = ps['diagnosis']
+ps = openpyxl.load_workbook('PLASCHEMA Medicine List.xlsx')
+sheet = ps['Sheet1']
 sheet.max_row 
 
-# for row in range(5, sheet.max_row + 1):
+# for row in range(5, sheet.max_row -9):
 #     drug = sheet['B' + str(row)].value
 #     dosage_form = sheet['C' + str(row)].value
 #     strength = sheet['D' + str(row)].value
 #     price = sheet['E' + str(row)].value
 
 #     data = {"drug": drug, "dosage_form": dosage_form, "strength": strength, "price": price}
-#     print(data)
-#     #service_col.insert_one(data)
+#     #print(data)
+#     medicine_col.insert_one(data)
 # print("done")
 
-for row in range(2, sheet.max_row + 1):
-    diagnosis = sheet['A' + str(row)].value
+# for row in range(2, sheet.max_row + 1):
+#     diagnosis = sheet['A' + str(row)].value
 
 
-    data = {"diagnosis": diagnosis}
-    diagnosis_col.insert_one(data)
-#print(data)
-print("done")
+#     data = {"diagnosis": diagnosis}
+#     diagnosis_col.insert_one(data)
+# #print(data)
+# print("done")
 
 def return_services():
     data = service_col.find()
@@ -81,4 +81,13 @@ def return_diagnosis():
 
     print(diagnosis_list)
         
-return_diagnosis()
+def return_drugs():
+    data = medicine_col.find({},{ "_id": 0,"price": 0 })
+    medicine_list = list()
+    for i in data:
+        medicine_list.append(i)
+
+    print(medicine_list)
+        
+
+return_drugs()
