@@ -91,4 +91,4 @@ def return_drugs():
     print(medicine_list)
         
 
-return_drugs()
+#return_drugs()
