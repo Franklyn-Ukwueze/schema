@@ -35,16 +35,16 @@ def urgent2k_token_required(f):
     return decorated
 
 
-os.getcwd()
-os.chdir("C:/Users/DELL/Downloads") #this changes our CWD, if the excel sheet is not in CWD
+# os.getcwd()
+# os.chdir("C:/Users/DELL/Downloads") #this changes our CWD, if the excel sheet is not in CWD
 
 # file = 'PLASCHEMA Service Tariff.xlsx'
 # data = pd.ExcelFile(file)
 # print(data.sheet_names) #this returns the all the sheets in the excel file
 # ['Sheet1']
-ps = openpyxl.load_workbook('PLASCHEMA Medicine List.xlsx')
-sheet = ps['Sheet1']
-sheet.max_row 
+# ps = openpyxl.load_workbook('PLASCHEMA Medicine List.xlsx')
+# sheet = ps['Sheet1']
+# sheet.max_row 
 
 # for row in range(5, sheet.max_row -9):
 #     drug = sheet['B' + str(row)].value
