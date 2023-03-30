@@ -66,7 +66,7 @@ def get_services():
     for i in data:
         service_list.append(i.get("service"))
 
-    return jsonify({"status": True, "message":"Services have been retrieved successfully", "data": service_list })
+    return {"status": True, "message":"Services have been retrieved successfully", "data": service_list }
 
 @app.route('/get/diagnosis', methods = ['GET'])
 def get_diagnosis():
@@ -75,7 +75,7 @@ def get_diagnosis():
     for i in data:
         diagnosis_list.append(i.get("diagnosis"))
 
-    return jsonify({"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list })
+    return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }
 
 @app.route('/get/drugs', methods = ['GET'])
 def get_drugs():
@@ -84,7 +84,7 @@ def get_drugs():
     for i in data:
         medicine_list.append(i)
 
-    return jsonify({"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list })
+    return {"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list }
 
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
