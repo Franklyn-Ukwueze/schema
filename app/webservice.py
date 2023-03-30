@@ -1,8 +1,8 @@
 import os
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
-from app.helpers import urgent2k_token_required, service_col, medicine_col, diagnosis_col
-from config import*
+from helpers import urgent2k_token_required, service_col, medicine_col, diagnosis_col
+#from config import*
 urgent2k_token = os.environ.get("URGENT_2K_KEY")
 
 
@@ -81,3 +81,5 @@ def get_drugs():
 
     return jsonify({"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list })
 
+if __name__ == '__main__':
+    app.run(debug=False, use_reloader=False)
