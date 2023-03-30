@@ -2,7 +2,7 @@ import os
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
 from helpers import urgent2k_token_required, service_col, medicine_col, diagnosis_col
-
+from pymongo import MongoClient
 urgent2k_token = os.environ.get("URGENT_2K_KEY")
 
 
@@ -11,6 +11,11 @@ app = Flask(__name__)
 # creating an API object
 api = Api(app)
 
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client.schema_data
+service_col = db.services
+medicine_col = db.medicine
+diagnosis_col = db.diagnosis
 # class Home(Resource):
 
 #     def get(self):
