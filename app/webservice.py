@@ -2,7 +2,7 @@ import os
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
 from helpers import urgent2k_token_required, service_col, medicine_col, diagnosis_col
-#from config import*
+
 urgent2k_token = os.environ.get("URGENT_2K_KEY")
 
 
