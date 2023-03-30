@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
 from flask_cors import CORS
 from pymongo import MongoClient
-from config import Config, MONGO_URI
+from app.config import Config, MONGO_URI
 from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
