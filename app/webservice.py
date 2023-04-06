@@ -146,7 +146,7 @@ def home():
 
 #     return {"message": f"Service {data['service']['serviceName']} added", "status": True}
 
-@app.route("/encounters/<string:code>/diagnosis", methods=["PUT"])
+@app.route("/encounters/<string:code>/diagnosis", methods=["POST"])
 #@api_required
 def diagnose_encounter(code):
     
@@ -168,7 +168,7 @@ def diagnose_encounter(code):
     else:
         return jsonify(data=diagnosis, message=f"diagnosis recorded for encounter code{code}", status=True)
     
-@app.route('/encounters/<string:code>/services', methods=["PUT"])
+@app.route('/encounters/<string:code>/services', methods=["POST"])
 #@api_required
 def encounters_services(code):
 
@@ -191,7 +191,7 @@ def encounters_services(code):
     else:
         return jsonify(data=services, message=f"Services recorded for encounter code{code}", status=True)
 
-@app.route('/encounters/<string:code>/drugs', methods=["PUT"])
+@app.route('/encounters/<string:code>/drugs', methods=["POST"])
 #@api_required
 def encounters_drugs(code):
 
