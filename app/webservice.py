@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify, request, g
 from flask_restful import Resource, Api
+from flask_pymongo import PyMongo
 from helpers import urgent2k_token_required #service_col, medicine_col, diagnosis_col
 from pymongo import MongoClient
 from marshmallow import fields, Schema
@@ -14,11 +15,10 @@ app = Flask(__name__)
 # creating an API object
 api = Api(app)
 
-client = MongoClient(os.getenv("MONGO_URI"))
-db = client.schema_data
-service_col = db.services
-medicine_col = db.medicine
-diagnosis_col = db.diagnosis
+mongo_uri = os.environ.get("MONGO_URI_2")
+
+mongo = PyMongo(app, uri=mongo_uri)
+
 
 current_date = datetime.now()
 
@@ -31,7 +31,7 @@ def check_exp(exp_date):
 
 
 class Diagnose(Schema):
-    diagnosis = fields.Str(required=True)
+    diagnosis = fields.List(fields.Dict(required=True), required=True)
     facility_no = fields.Int(required=True)
 
 
@@ -83,47 +83,45 @@ class Drugs(Schema):
 
 @app.route('/', methods = ['GET', 'POST'])
 def home():
-    mon = g.get('mongo')
     if(request.method == 'GET'):
-        #for i in mon.db.encounters.find():
-        x = mon.db.encounters.find_one()
-        #data = {'message': mon.db.encounters.find() }
-        return jsonify(data=x, status=True)
+        
+        data = {'message': str(mongo.db.encounters.find_one())}
+        return jsonify(data)
     
-@app.route('/get/services', methods = ['GET'])
-def get_services():
-    data = service_col.find()
-    service_list = list()
-    for i in data:
-        service_list.append(i.get("service"))
+# @app.route('/get/services', methods = ['GET'])
+# def get_services():
+#     data = service_col.find()
+#     service_list = list()
+#     for i in data:
+#         service_list.append(i.get("service"))
 
-    return {"status": True, "message":"Services have been retrieved successfully", "data": service_list }
+#     return {"status": True, "message":"Services have been retrieved successfully", "data": service_list }
 
-@app.route('/get/diagnosis', methods = ['GET'])
-def get_diagnosis():
-    data = diagnosis_col.find()
-    diagnosis_list = list()
-    for i in data:
-        diagnosis_list.append(i.get("diagnosis"))
+# @app.route('/get/diagnosis', methods = ['GET'])
+# def get_diagnosis():
+#     data = diagnosis_col.find()
+#     diagnosis_list = list()
+#     for i in data:
+#         diagnosis_list.append(i.get("diagnosis"))
 
-    return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }
+#     return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }
 
-#@app.route('/get/drugs', methods = ['GET'])
-def get_drugs():
-    data = medicine_col.find({},{ "_id": 0,"price": 0 })
-    # medicine_list = list()
-    # for i in data:
-    #     medicine_list.append(i)
+# #@app.route('/get/drugs', methods = ['GET'])
+# def get_drugs():
+#     data = medicine_col.find({},{ "_id": 0,"price": 0 })
+#     # medicine_list = list()
+#     # for i in data:
+#     #     medicine_list.append(i)
 
-    return {"status": True, "message":"List of drugs has been retrieved successfully", "data": data }
+#     return {"status": True, "message":"List of drugs has been retrieved successfully", "data": data }
 
 
 # @app.route("/add/encounter", methods=["POST"])
 # #@api_required
 # def AddEncounter():
-#     mon = g.get('mongo')
+#     
 #     data = request.get_json()
-#     en_result = mon.db.encounters.find_one({"code": data["encounter_code"], "archive": False})
+#     en_result = mongo.db.encounters.find_one({"code": data["encounter_code"], "archive": False})
 #     staff_result = mon.db.facilities.find_one({"$or": [{"oic_number": data["facility_no"]},
 #                                                        {"name.id": int(data["facility_no"])}]})
 #     if len(data["encounter_code"]) == 6:
@@ -142,7 +140,7 @@ def get_drugs():
 #         return {"message": "encounter expired", "status": False}
 #     encounter_type = "services" if data["type"] == "service" else "drug"
 #     Today = datetime.now()
-#     mon.db.encounters.update_one({"_id": ObjectId(en_result["_id"]), "code": data["encounter_code"]}, {
+#     mongo.db.encounters.update_one({"_id": ObjectId(en_result["_id"]), "code": data["encounter_code"]}, {
 #         "$push": {encounter_type: {"date": Today, "service": data["service"],
 #                                "facility": en_result["facility"]}}})
 
@@ -151,29 +149,29 @@ def get_drugs():
 @app.route("/encounters/<string:code>/diagnosis", methods=["PUT"])
 #@api_required
 def diagnose_encounter(code):
-    mon = g.get('mongo')
     
     try:
         data = request.get_json()
         payload = Diagnose().load(data)
-        doc = {"date": str(current_date),
-               "diagnosis": payload["diagnosis"]
-               }
+        diagnosis = []
+        for x in payload["services"]:
+            x.update({"date": str(current_date)})
+            diagnosis.append(x)
         query = {"active": "approved", "type": "referral"} if len(code) == 6 else {"type": "encounter"}
-        record = mon.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
+        record = mongo.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
                                                         "archive": False, **query},
-                                                       {"$push": {"diagnosis": doc}})
+                                                       {"$push": {"diagnosis": diagnosis}})
         if not list(record):
             jsonify(message=f"No record found for {code}", status=False)
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(message="diagnosis recorded", status=True)
+        return jsonify(data=diagnosis, message=f"diagnosis recorded for encounter code{code}", status=True)
     
 @app.route('/encounters/<string:code>/services', methods=["PUT"])
 #@api_required
 def encounters_services(code):
-    mon = g.get('mongo')
+
     try:
         data = request.get_json()
         payload = Serivces().load(data)
@@ -182,7 +180,7 @@ def encounters_services(code):
             x.update({"date": str(current_date)})
             services.append(x)
         query = {"active": "approved", "type": "referral"} if len(code) == 6 else {"type": "encounter"}
-        record = mon.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
+        record = mongo.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
                                                         "archive": False, "diagnosis": {"$ne": []},**query},
                                                        {"$push": {"services": {"$each": services}}})
         if not record:
@@ -191,12 +189,12 @@ def encounters_services(code):
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(message="Services recorded", status=True)
+        return jsonify(data=services, message=f"Services recorded for encounter code{code}", status=True)
 
 @app.route('/encounters/<string:code>/drugs', methods=["PUT"])
 #@api_required
 def encounters_drugs(code):
-    mon = g.get('mongo')
+
     try:
         data = request.get_json()
         payload = Drugs().load(data)
@@ -205,7 +203,7 @@ def encounters_drugs(code):
             x.update({"date": str(current_date)})
             drugs.append(x)
         query = {"active": "approved", "type": "referral"} if len(code) == 6 else {"type": "encounter"}
-        record = mon.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
+        record = mongo.db.encounters.find_one_and_update({"code": code, "facility.id": payload["facility_no"],
                                                         "archive": False, **query},
                                                        {"$push": {"drugs": {"$each":drugs}}})
         if not record:
@@ -213,7 +211,7 @@ def encounters_drugs(code):
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(message="Drugs recorded", status=True)
+        return jsonify(data=drugs, message=f"Drugs recorded for encounter code{code}", status=True)
     
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
@@ -221,5 +219,5 @@ if __name__ == '__main__':
 #print(get_drugs())
 
 
-# for i in mon.db.encounters.find():
-#     print(i)
+#for i in encounters.find():
+#print(mongo.db.encounters.find_one())
