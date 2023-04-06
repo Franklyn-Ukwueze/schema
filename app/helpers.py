@@ -40,7 +40,7 @@ def urgent2k_token_required(f):
 
 # file = 'PLASCHEMA Service Tariff.xlsx'
 # data = pd.ExcelFile(file)
-# print(data.sheet_names) #this returns the all the sheets in the excel file
+#print(data.sheet_names) #this returns the all the sheets in the excel file
 # ['Sheet1']
 # ps = openpyxl.load_workbook('PLASCHEMA Medicine List.xlsx')
 # sheet = ps['Sheet1']
@@ -91,4 +91,4 @@ def return_drugs():
     print(medicine_list)
         
 
-#return_drugs()
+#return_diagnosis()
