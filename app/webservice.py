@@ -85,7 +85,7 @@ class Drugs(Schema):
 def home():
     if(request.method == 'GET'):
         
-        data = {'message': str(mongo.db.encounters.find_one())}
+        data = {'message': "welcome to the homepage of this webservice"}
         return jsonify(data)
     
 # @app.route('/get/services', methods = ['GET'])
