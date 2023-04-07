@@ -154,7 +154,7 @@ def diagnose_encounter(code):
         data = request.get_json()
         payload = Diagnose().load(data)
         diagnosis = []
-        for x in payload["services"]:
+        for x in payload["diagnosis"]:
             x.update({"date": str(current_date)})
             diagnosis.append(x)
         query = {"active": "approved", "type": "referral"} if len(code) == 6 else {"type": "encounter"}
