@@ -166,7 +166,7 @@ def diagnose_encounter(code):
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(data=diagnosis, message=f"diagnosis recorded for encounter code{code}", status=True)
+        return jsonify(data=diagnosis, message=f"diagnosis recorded for encounter code {code}", status=True)
     
 @app.route('/encounters/<string:code>/services', methods=["POST"])
 #@api_required
@@ -189,7 +189,7 @@ def encounters_services(code):
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(data=services, message=f"Services recorded for encounter code{code}", status=True)
+        return jsonify(data=services, message=f"Services recorded for encounter code {code}", status=True)
 
 @app.route('/encounters/<string:code>/drugs', methods=["POST"])
 #@api_required
@@ -211,7 +211,7 @@ def encounters_drugs(code):
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
-        return jsonify(data=drugs, message=f"Drugs recorded for encounter code{code}", status=True)
+        return jsonify(data=drugs, message=f"Drugs recorded for encounter code {code}", status=True)
     
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
