@@ -213,10 +213,26 @@ def encounters_drugs(code):
     else:
         return jsonify(data=drugs, message=f"Drugs recorded for encounter code {code}", status=True)
     
+@app.route('/search/services/<string:keyword>', methods=["GET"])
+def search_services(keyword):
+        
+    try:
+        services = list()
+        record = mongo.db.services.find({},{ "_id": 0})
+        for i in record:
+            if keyword in i.get("serviceName").split():
+                services.append(i)
+    except Exception as e:
+        return jsonify(message=f"An exception occurred: {e}", status=False)
+    else:
+        return jsonify(data=services, message=f"List of services similar to {keyword} retreived successfully", status=True)  
+    
+        
+
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
 #print(os.environ.get("URGENT_2K_KEY"))
-#print(get_drugs())
+#print(encounters_services(12345678))
 
 
 #for i in encounters.find():
