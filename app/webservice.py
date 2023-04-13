@@ -16,7 +16,6 @@ app = Flask(__name__)
 api = Api(app)
 
 mongo_uri = os.environ.get("MONGO_URI_2")
-
 mongo = PyMongo(app, uri=mongo_uri)
 
 
@@ -218,7 +217,7 @@ def search_services(keyword):
         
     try:
         services = list()
-        record = mongo.db.services.find({},{ "_id": 0})
+        record = mongo.db.services.find({},{"_id": 0, "serviceName":1, "serviceCode":1, "price":1})
         for i in record:
             if keyword in i.get("serviceName").split():
                 services.append(i)
