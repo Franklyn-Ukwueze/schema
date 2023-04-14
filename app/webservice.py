@@ -217,10 +217,9 @@ def search_services(keyword):
         
     try:
         services = list()
-        record = mongo.db.services.find({},{"_id": 0, "serviceName":1, "serviceCode":1, "price":1})
+        record = mongo.db.services.find({"serviceName": {"$regex": keyword, "$options": "i"}}, {"_id": 0, "serviceName": 1, "serviceCode":1, "price":1})
         for i in record:
-            if keyword in i.get("serviceName").split():
-                services.append(i)
+            services.append(i)
     except Exception as e:
         return jsonify(message=f"An exception occurred: {e}", status=False)
     else:
