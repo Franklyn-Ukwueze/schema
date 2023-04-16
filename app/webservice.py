@@ -50,35 +50,35 @@ class Drugs(Schema):
 #         return {'message': "Welcome to the homepage of this webservice."}
 # api.add_resource(Home,'/')
 
-# class GetServices(Resource):
+class GetServices(Resource):
     
-#     def get(self):
-#         data = service_col.find()
-#         service_list = list()
-#         for i in data:
-#             service_list.append(i.get("service"))
-#         return {"status": True, "message":"Services have been retrieved successfully", "data": service_list }, 200
-# api.add_resource(GetServices,'/get/services')
+   def get(self):
+        data = mongo.db.services.find({},{ "_id": 0})
+        service_list = list()
+        for i in data:
+            service_list.append(i.get("serviceName"))
+        return {"status": True, "message":"Services have been retrieved successfully", "data": service_list }, 200
+api.add_resource(GetServices,'/get/services')
 
-# class GetDiagnosis(Resource):
+class GetDiagnosis(Resource):
     
-#     def get(self):
-#         data = diagnosis_col.find()
-#         diagnosis_list = list()
-#         for i in data:
-#             diagnosis_list.append(i.get("diagnosis"))
-#         return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }, 200
-# api.add_resource(GetDiagnosis,'/get/diagnosis')
+    def get(self):
+        data = mongo.db.diagnosis.find({},{ "_id": 0})
+        diagnosis_list = list()
+        for i in data:
+            diagnosis_list.append(i.get("diagnosis"))
+        return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }, 200
+api.add_resource(GetDiagnosis,'/get/diagnosis')
 
-# class GetDrugs(Resource):
+class GetDrugs(Resource):
     
-#     def get(self):
-#         data = medicine_col.find({},{ "_id": 0,"price": 0 })
-#         medicine_list = list()
-#         for i in data:
-#             medicine_list.append(i)
-#         return {"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list }, 200
-# api.add_resource(GetDrugs,'/get/drugs')
+   def get(self):
+        data = mongo.db.drug.find({},{ "_id": 0,"price": 0 })
+        medicine_list = list()
+        for i in data:
+            medicine_list.append(i.get("drugName"))
+        return {"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list }, 200
+api.add_resource(GetDrugs,'/get/drugs')
 
 @app.route('/', methods = ['GET', 'POST'])
 def home():
