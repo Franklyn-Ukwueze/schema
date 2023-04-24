@@ -1,6 +1,6 @@
 import os
 from flask import Flask, jsonify, request, g
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 from flask_pymongo import PyMongo
 from helpers import urgent2k_token_required #service_col, medicine_col, diagnosis_col
 from pymongo import MongoClient
@@ -79,6 +79,47 @@ class GetDrugs(Resource):
             medicine_list.append(i.get("drugName"))
         return {"status": True, "message":"List of drugs has been retrieved successfully", "data": medicine_list }, 200
 api.add_resource(GetDrugs,'/get/drugs')
+
+class GetDrugTotal(Resource):
+    parser = reqparse.RequestParser()
+
+    parser.add_argument('drug_list', 
+                    type=list,
+                    required=True,
+                    help="Enter list of drugs and field cannot be left blank")
+    
+ 
+    def get(self):
+        payload = GetDrugTotal.parser.parse_args()
+        drug_list = payload["drug_list"]
+        price_list = list()
+        for drug in drug_list:
+            record = mongo.db.drug.find_one({"drugName" : drug })
+            price_list.append(record.get("price"))
+        total = sum(price_list)
+        return {"status": True, "message":f"Price total for drugs is NGN{total}", "data":total }, 200
+api.add_resource(GetDrugTotal,'/get/drugs/total')
+
+class GetServiceTotal(Resource):
+    parser = reqparse.RequestParser()
+
+    parser.add_argument('service_list', 
+                    type=list,
+                    required=True,
+                    help="Enter list of services and field cannot be left blank")
+    
+ 
+    def get(self):
+        payload = GetServiceTotal.parser.parse_args()
+        service_list = payload["service_list"]
+        price_list = list()
+        for service in service_list:
+            record = mongo.db.services.find_one({"serviceName" : service })
+            price_list.append(record.get("price"))
+        total = sum(price_list)
+        return {"status": True, "message":f"Price total for services is NGN{total}", "data":total }, 200
+api.add_resource(GetServiceTotal,'/get/services/total')
+
 
 @app.route('/', methods = ['GET', 'POST'])
 def home():
