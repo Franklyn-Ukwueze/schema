@@ -146,12 +146,12 @@ def home():
 
 #     return {"status": True, "message":"Diagnosis have been retrieved successfully", "data": diagnosis_list }
 
-# #@app.route('/get/drugs', methods = ['GET'])
+# @app.route('/get/drugs', methods = ['GET'])
 # def get_drugs():
 #     data = medicine_col.find({},{ "_id": 0,"price": 0 })
-#     # medicine_list = list()
-#     # for i in data:
-#     #     medicine_list.append(i)
+#     medicine_list = list()
+#     for i in data:
+#         medicine_list.append(i)
 
 #     return {"status": True, "message":"List of drugs has been retrieved successfully", "data": data }
 
@@ -266,7 +266,95 @@ def search_services(keyword):
     else:
         return jsonify(data=services, message=f"List of services similar to {keyword} retreived successfully", status=True)  
     
-        
+@app.route("/all/encounter", methods=["GET"])
+def all_encounter():
+    mon = g.get('mongo')
+    encounter = mon.db.encounters.find({}, {"_id": 0})
+
+    return {"data": list(encounter), "status": "true"}
+
+
+@app.route("/enrollments/<var>", methods=["GET"])
+def al_enrollmentss(var):
+    mon = g.get('mongo')
+    var = var.lower()
+    count = mon.db.summary.find_one({f"enrollee_{var}": {"$exists": True}}, {"_id": 0, f"enrollee_{var}": 1})
+
+    return jsonify(data=count, status=True)
+
+
+@app.route("/facility/<var>", methods=["GET"])
+def all_facility(var):
+    mon = g.get('mongo')
+    var = var.lower()
+    count = mon.db.summary.find_one({f"facility_{var}": {"$exists": True}}, {"_id": 0, f"facility_{var}": 1})
+    return jsonify(data=count, status=True)
+
+
+@app.route("/encounter/<var>", methods=["GET"])
+def all_encounters(var):
+    mon = g.get('mongo')
+    var = var.lower()
+    count = mon.db.summary.find_one({f"encounter_{var}": {"$exists": True}}, {"_id": 0, f"encounter_{var}": 1})
+    return jsonify(data=count, status=True)
+
+
+def generate_id(gender):
+    mon = g.get('mongo')
+    gen = {"female": "2", "male": "1"}
+    sex = gen[gender.lower()] if gender.lower() in gen else "0"
+    wards = Nan.values()
+    ward = random.choice(list(wards))
+    p = create_code(6)
+    enrid = p + ward + sex
+    code = mon.db.subscriptions.find_one({"enrollment_id": enrid})
+    while code:
+        p = create_code(6)
+        enrid = p + ward + sex
+        code = mon.db.subscriptions.find_one({"enrollment_id": enrid})
+    return enrid
+
+def subscriptions(subcat, info, duration=False):
+    mon = g.get('mongo')
+    data = {"name": info["name"], "passport":info["passport"], "lga":info["lga"],
+           "subcategoryitem":info["subcategoryitem"],"hmo":info["hmo"], "facility":info["facility"],
+           "enrollment_id":info["enrollment_id"], "date_of_birth":info["date_of_birth"],"submission_id": info.get("submission_id", "None")
+    , "submission_time": info["submission_time"], "principal_s_submission_id": info.get("principal_s_submission_id", "None")}
+
+    sub = mon.db.categories.find_one({"name.id": int(subcat)}, {"sector": 1, "subcategory": 1})
+    dur = duration or 12
+    date = datetime.today() + relativedelta(months=+int(dur))
+    sub_status = {"Formal": False, "Informal": date, "General": date, "Equity": date,
+                  "Organized Private Sector (Neca)": date}
+    sub_statuss = sub_status[sub["subcategory"]] if sub["subcategory"] in sub_status else sub_status[
+        sub["sector"]]
+    data["expiry_date"] = sub_statuss
+    dates = parser.parse(str(datetime.today())) #"submission_id", "principal_s_submission_id"]
+    if duration:
+        if (duration is not None) and (duration != str(0)):
+            data["payments"] = [
+                {"paymentref": data["submission_id"], "transaction_date": dates, "duration": int(duration)}]
+            data["total_duration"] = int(duration)
+        else:
+            data["payments"] = "payments by psg" if (sub["subcategory"] == "Formal") else "payments by ops/sponsored"
+            data["total_duration"] = 12
+    else:
+        payment = mon.db.payments.find_one({data["principal_s_submission_id"]:"True"},{"_id":0, "duration":1})
+        if not payment:
+            data["payments"] = "payments by psg" if (sub["subcategory"] == "Formal") else "payments by ops/sponsored"
+            data["total_duration"] = 12
+        else:
+            data["payments"] = [
+                    {"paymentref": data["submission_id"], "transaction_date": dates, "duration": payment["duration"]}]
+            data["total_duration"] = payment["duration"]
+
+    doc = {"name": data["name"], "passport":data["passport"], "lga":data["lga"],
+           "subcategoryitem":data["subcategoryitem"],"hmo":data["hmo"], "facility":data["facility"],
+           "enrollment_id":data["enrollment_id"], "date_of_birth":data["date_of_birth"],"payments":data["payments"],
+           "total_duration": data["total_duration"], "expiry_date":data["expiry_date"],
+           "submission_time": data["submission_time"]}
+
+    mon.db.subscriptions.insert_one(doc)       
 
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
