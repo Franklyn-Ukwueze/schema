@@ -356,6 +356,89 @@ def subscriptions(subcat, info, duration=False):
 
     mon.db.subscriptions.insert_one(doc)       
 
+def fileuploads():
+    mon = g.get('mongo')
+    hmo_name = request.form["hmo_name"]
+    hmo_id = request.form["hmo_id"]
+    email = request.form["email"]
+    cat_id = request.form["subcategoryitemid"]
+    cat_name = request.form["subcategoryitemname"]
+    cat = request.form["category"]
+    subcat = request.form["subcategory"]
+    file = request.files.get('file')
+    df = pd.read_excel(file, engine='openpyxl')
+
+    # check column headers
+    new_columns = []
+    col1 = ["name", "gender", "date_of_birth", "dofa"]
+    for col in df.columns:
+        col = col.replace("_", " ")
+        col = col.strip()
+        col = col.lower()
+        col = col.replace(" ", "_")
+        new_columns.append(col)
+
+    if "psn" in new_columns and (subcat == "Local Government Area"):
+        col1.append("psn")
+    no_col = [x for x in col1 if x not in new_columns]
+
+    if "psn" not in new_columns and (subcat == "Local Government Area"):
+        return {"message": "the field PSN is not found", "status": False}
+    if len(no_col) > 0 and (cat == "Formal"):
+        return {"message": f"the following fields where not found in the file {no_col}", "status": False}
+    if ("name" not in new_columns) and (cat != "Formal"):
+        return {"message": "The file doesn't contain a name column", "status": False}
+    if df.shape[0] >= 500:
+        return {"message": "can not uplaod more than 100 records at a time", "status": False}
+    if df.shape[0] == 0:
+        return {"message": "can not upload empty file", "status": False}
+
+    if (cat == "Formal"):
+        checks = ["name", "gender", "date_of_birth"]
+    elif (cat != "Formal"):
+        checks = ["name"]
+
+    df.columns = new_columns
+    df["date"] = str(datetime.today())
+    df["status"] = "Not_Merged"
+    has_null = df[df[checks].isnull().any(axis=1)]
+    no_null = df[~df[checks].isnull().any(axis=1)]
+
+    if "psn" in df.columns:
+        no_null.rename(columns={'psn': 'submission_id'}, inplace=True)
+    else:
+        no_null.loc[:, "submission_id"] = no_null.apply(lambda x: hmo_id + str(randint(0, 999999)).zfill(6), axis=1)
+
+    data = no_null.to_dict("records")
+
+
+    bulk = mon.db.nominal.initialize_ordered_bulk_op()
+    for doc in data:
+        doc[cat_id] = doc["submission_id"]
+        doc["hmo"] = {"name": hmo_name, "id": int(hmo_id)}
+        doc["subcategoryitem"] = {"name": cat_name, "id": int(cat_id)}
+        bulk.insert(doc)
+
+    bulk.execute()
+
+    mon.db.hmos.update_one({"name.name": hmo_name.title()}, {"$inc": {"total_assigned": no_null.shape[0]}})
+    mon.db.categories.update_one({f"{int(cat_id)}": {"$exists": True}}, {"$inc": {"nominal_total": no_null.shape[0]}})
+    # file_name = str(datetime.today().strftime('%d%m%Y'))
+    out = io.BytesIO()
+    writer = pd.ExcelWriter(out, engine='openpyxl')
+    has_null.to_excel(writer, index=False, sheet_name='incomplete data')
+    no_null.to_excel(writer, index=False, sheet_name='complete data')
+    # writer.save()
+    writer.close()
+    message = f'Please find attached new submission ids created by {email}'
+    send_mail(out.getvalue(), "nominal_file.xlsx", message, "for nominal roles")
+
+    return {"message": "file uploaded", "status": True}
+
+@app.route('/file/upload', methods=["POST"])
+def checkfile():
+    return fileuploads()
+
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
 #print(os.environ.get("URGENT_2K_KEY"))
