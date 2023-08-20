@@ -90,5 +90,51 @@ def return_drugs():
 
     print(medicine_list)
         
+def enrollment_summary():
+    mon = g.get('mongo')
+    record = mon.db.hmos.find({}, {"_id": 0, "name.name": 1, "total_assigned": 1, "total_enrolled": 1, "number_dep": 1})
+    cats = mon.db.categories.aggregate([{"$match": {"subcategory": {"$exists": True}, }},
+                                        {"$group": {"_id": "$subcategory",
+                                                    "Total Enrolled": {"$sum": "$total_enrolled"},
+                                                    "Enrolled Dependents": {"$sum": "$number_dep"},
+                                                    "Total Nominal": {"$sum": "$nominal_total"},
+                                                    "Number of items": {"$sum": 1}}}])
+    df1 = pd.DataFrame(cats)
+    data = []
+    for hmo in list(record):
+        hmo["name"] = hmo["name"]["name"]
+        data.append(hmo)
+    df = pd.DataFrame(data)
+    df.set_index('name', inplace=True)
+    df["Assigned Enrolled Diff"] = df["total_assigned"] - df["total_enrolled"]
+    df["Principal & Dependents"] = df["total_enrolled"] + df["number_dep"]
+    df1["Assigned Enrolled Diff"] = df1["Total Nominal"] - df1["Total Enrolled"]
+    df1["Principal & Dependents"] = df1["Total Enrolled"] + df1["Enrolled Dependents"]
+    df1.loc['Total'] = df1.sum(numeric_only=True, axis=0)
+    df.loc['Total'] = df.sum(numeric_only=True, axis=0)
+    df = df.rename(
+        columns={"total_assigned": 'Assigned', "total_enrolled": 'Enrolled', "number_dep": "Dependents", "name": "Hmo"})
+    df1 = df1.rename(columns={"_id": 'Subcategory'})
+    df1 = df1.reindex(
+        columns=["Subcategory", "Number of items", 'Total Nominal', "Total Enrolled", "Assigned Enrolled Diff",
+                 "Enrolled Dependents", "Principal & Dependents"])
+    # Creating output and writer (pandas excel writer)
+    out = io.BytesIO()
+    writer = pd.ExcelWriter(out, engine='openpyxl')
 
+    # Export data frame to excel
+    df.to_excel(excel_writer=writer, sheet_name='HMO summary')
+    df1.to_excel(excel_writer=writer, sheet_name='category summary', index=False)
+    writer.save()
+    writer.close()
+
+    # Flask create response
+    r = make_response(out.getvalue())
+
+    # Defining correct excel headers
+    r.headers[
+        "Content-Disposition"] = f"attachment; filename=Enrollment_summary{datetime.today().strftime('%Y-%m-%d')}.xlsx"
+    r.headers["Content-type"] = "application/x-xls"
+
+    return r
 #return_diagnosis()
