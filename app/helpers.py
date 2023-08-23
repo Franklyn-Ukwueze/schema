@@ -190,4 +190,31 @@ resp.headers[
 resp.headers["Content-type"] = "application/x-xls"
 
 return resp
+
+@app.route('/get_large_data', methods=['GET'])
+def get_large_data():
+    # Retrieve data from MongoDB
+    data = list(collection.find({}))  # Customize your query if needed
+
+    # Create an Excel file
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    for index, item in enumerate(data, start=1):
+        ws.cell(row=index, column=1, value=item['field1'])  # Customize for your data structure
+
+    excel_filename = 'large_data.xlsx'
+    wb.save(excel_filename)
+
+    # Send the Excel file to the client
+    return send_file(excel_filename, as_attachment=True)
+
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSONIFY_MIMETYPE'] = 'application/json;charset=utf-8'
+
+import eventlet
+eventlet.monkey_patch()
+
+
 #return_diagnosis()
