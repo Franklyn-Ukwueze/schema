@@ -137,4 +137,57 @@ def enrollment_summary():
     r.headers["Content-type"] = "application/x-xls"
 
     return r
+
+def category_data(category):
+mon = g.get('mongo')
+cat = mon.db.categories.distinct("name.id", {"sector": category.title()})
+
+record = mon.db.enrollments.find({"subcategoryitem.id":{"$in":cat}},
+                                    {"_id": 0, "subcategoryitem.name": 1, "date_of_birth": 1, "name": 1, "hmo.name": 1,
+                                    "submission_id": 1, "enrollment_id": 1, "phone_number": 1, "blood_group": 1,
+                                    "gender": 1, "dependents": 1, "facility.name": 1,"sub_status":1})
+records = list(record)
+if record is None or len(records) == 0:
+    return {"message": f"No information Available for {category}", "status": False}
+
+data = []
+depp = []
+for rec in records:
+    rec["hmo"] = rec["hmo"]["name"]
+    rec["mda"] = rec["subcategoryitem"]["name"]
+    rec["facility"] = rec["facility"]["name"]
+    if "dependents" in rec:
+        for dep in rec["dependents"]:
+            depen = {}
+            if type(dep) != str:
+                depen["name"] = dep["name"]
+            else:
+                depen["name"] = dep
+            depen["submission_id"] = rec["submission_id"]
+            depp.append(depen)
+        del rec["dependents"]
+    del rec["subcategoryitem"]
+    data.append(rec)
+
+df = pd.DataFrame(data)
+dd = pd.DataFrame(depp)
+
+# Creating output and writer (pandas excel writer)
+out = io.BytesIO()
+writer = pd.ExcelWriter(out, engine='openpyxl')
+
+# Export data frame to excel
+df.to_excel(excel_writer=writer, sheet_name="principal", index=False)
+dd.to_excel(excel_writer=writer, sheet_name="dependants", index=False)
+writer.save()
+writer.close()
+
+# Flask create response
+resp = make_response(out.getvalue())
+# Defining correct excel headers
+resp.headers[
+    "Content-Disposition"] = f"attachment; filename={category.replace(' ', '_')}_{datetime.today().strftime('%Y-%m-%d')}.xlsx"
+resp.headers["Content-type"] = "application/x-xls"
+
+return resp
 #return_diagnosis()
