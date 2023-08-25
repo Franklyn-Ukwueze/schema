@@ -190,6 +190,7 @@ resp.headers[
 resp.headers["Content-type"] = "application/x-xls"
 
 return resp
+import eventlet
 
 @app.route('/get_large_data', methods=['GET'])
 def get_large_data():
@@ -213,8 +214,52 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 app.config['JSONIFY_MIMETYPE'] = 'application/json;charset=utf-8'
 
-import eventlet
 eventlet.monkey_patch()
 
+from flask import Flask, Response, render_template
+from flask_pymongo import PyMongo
+import pandas as pd
+import io
+import gevent
+from gevent.queue import Queue
+
+app = Flask(__name__)
+app.config['MONGO_URI'] = 'mongodb://localhost:27017/mydb'  # Update with your MongoDB URI
+mongo = PyMongo(app)
+
+def fetch_data():
+    cursor = mongo.db.collection.find()  # Update with your collection name and query if needed
+    data = list(cursor)
+    return data
+
+def generate_excel(data):
+    output = io.BytesIO()
+    df = pd.DataFrame(data)
+    df.to_excel(output, engine='openpyxl', index=False)
+    output.seek(0)
+    return output
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/download')
+def download():
+    data = fetch_data()
+    excel_data = generate_excel(data)
+
+    def generate():
+        yield excel_data.read(8192)  # Adjust buffer size as needed
+
+        while True:
+            chunk = excel_data.read(8192)
+            if not chunk:
+                break
+            yield chunk
+
+    return Response(generate(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 #return_diagnosis()
