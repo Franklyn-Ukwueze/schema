@@ -1,9 +1,22 @@
-from flask import Flask, Response
+from flask import Flask, Response, request, jsonify
 from pymongo import MongoClient
 import pandas as pd
 import io
+import os
+from flask_mail import Mail, Message
 
 app = Flask(__name__)
+
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = os.environ.get("EMAIL")
+app.config['MAIL_PASSWORD'] = os.environ.get("EMAIL_PASSWORD")
+mail = Mail(app)
+
+
 
 # MongoDB connection setup
 client = MongoClient('mongodb://localhost:27017/')
@@ -12,7 +25,7 @@ collection = db['bitcoin_blockchain_history']
 
 @app.route('/export_to_excel', methods=['GET'])
 def export_to_excel():
-    cursor = collection.find({},{"_id": 0})
+    
 
     def generate():
         # chunk_size = 500  # Number of records to process in one iteration
@@ -69,8 +82,8 @@ def export_to_excel():
     # Flask create response
     #resp = make_response(out.getvalue())
     # Query MongoDB collection in batches
-        batch_size = 5000
-        cursor = collection.find().batch_size(batch_size)
+        batch_size = 2000
+        cursor = collection.find({},{"_id": 0}).batch_size(batch_size)
 
         # Initialize an empty DataFrame
         dfs = []
@@ -97,6 +110,50 @@ def export_to_excel():
     response = Response(generate(), content_type='application/x-xls')
     response.headers['Content-Disposition'] = 'attachment; filename=data.xlsx'
     return response
+
+
+
+
+CHUNK_SIZE = 1000  # Number of records to fetch in each iteration
+
+def generate_data_chunks():
+    offset = 0
+    while True:
+        data_chunk = list(collection.find().skip(offset).limit(CHUNK_SIZE))
+        if not data_chunk:
+            break
+        yield data_chunk
+        offset += CHUNK_SIZE
+
+@app.route('/export_and_email', methods=['POST'])
+def export_and_email():
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return jsonify({'error': 'Email address not provided'}), 400
+
+    # Create Excel file
+    excel_file_path = 'data.xlsx'
+    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
+
+    # Fetch data from MongoDB in chunks and write to Excel
+    for chunk_num, data_chunk in enumerate(generate_data_chunks(), start=1):
+        df_chunk = pd.DataFrame(data_chunk)
+        sheet_name = f'Sheet_{chunk_num}'
+        df_chunk.to_excel(writer, sheet_name, index=False)
+
+    #writer.save()
+
+    # Send email
+    msg = Message('Data Export', sender='your_sender_email', recipients=[email])
+    with app.open_resource(excel_file_path) as excel_file:
+        msg.attach('data.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', excel_file.read())
+    mail.send(msg)
+
+    return jsonify({'message': 'Exported data and sent email'}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 
     
