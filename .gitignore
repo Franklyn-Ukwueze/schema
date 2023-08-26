@@ -1,3 +1,3 @@
 .env
-app\top10milliondomains.csv
-app\bitcoin_blockchain_history.csv
+app/top10milliondomains.csv
+app/bitcoin_blockchain_history.csv

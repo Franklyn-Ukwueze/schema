@@ -19,7 +19,7 @@ mail = Mail(app)
 
 
 # MongoDB connection setup
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient(os.environ.get('MONGO_URI'))
 db = client['random_data']
 collection = db['bitcoin_blockchain_history']
 
